@@ -6,13 +6,15 @@ import (
 )
 
 const (
-	home = "/home"
+	home      = "/home"
+	websocket = "/ws"
 )
 
 func Routers() *router.Router {
 	r := router.New()
 
 	r.GET(home, api.Home)
+	r.GET(websocket, api.WebSocket)
 
 	return r
 }

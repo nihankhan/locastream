@@ -1,0 +1,235 @@
+package api
+
+import (
+	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+
+	"github.com/fasthttp/websocket"
+	"github.com/valyala/fasthttp"
+)
+
+// HomeTemplate is the HTML template for the home page
+var HomeTemplate = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Location Streaming</title>
+    <script>
+        var ws = new WebSocket("ws://" + window.location.host + "/ws");
+
+        ws.onopen = function(event) {
+            console.log("WebSocket connection established.");
+        };
+
+        ws.onmessage = function(event) {
+            console.log("Received message:", event.data);
+            // Parse and process location data received from server
+            var location = JSON.parse(event.data);
+            updateLocation(location);
+        };
+
+        ws.onclose = function(event) {
+            console.log("WebSocket connection closed.");
+        };
+
+        function updateLocation(location) {
+            // Update UI with the latest location data
+            document.getElementById("latitude").innerText = "Latitude: " + location.latitude;
+            document.getElementById("longitude").innerText = "Longitude: " + location.longitude;
+        }
+    </script>
+</head>
+<body>
+    <h1>Real-Time Location Streaming</h1>
+    <div id="location">
+        <p id="latitude">Latitude:</p>
+        <p id="longitude">Longitude:</p>
+    </div>
+</body>
+</html>
+`
+
+func Home(ctx *fasthttp.RequestCtx) {
+	fmt.Println("Hello World!")
+
+	// Check if the request is a WebSocket upgrade request
+	if websocket.FastHTTPIsWebSocketUpgrade(ctx) {
+		WebSocket(ctx)
+		return
+	}
+
+	// Serve the HTML template for the home page
+	tmpl, err := template.New("home").Parse(HomeTemplate)
+	if err != nil {
+		log.Println("Error parsing template:", err)
+		ctx.Error("Internal Server Error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	// Execute the template and write the response
+	err = tmpl.Execute(ctx, nil)
+	if err != nil {
+		log.Println("Error executing template:", err)
+		ctx.Error("Internal Server Error", fasthttp.StatusInternalServerError)
+		return
+	}
+}
+
+
+var HomeTemplate = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Location Streaming</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" integrity="sha384-SO/mf3RVeZ2jnPExIzHnUV73zTfSxEhJEMHDs5gIVBUurvZI6U7E3lItPb2zFZB1" crossorigin="">
+
+    <style>
+        #map { height: 400px; }
+    </style>
+</head>
+<body>
+    <h1>Real-Time Location Streaming</h1>
+    <!-- Map container -->
+    <div id="map"></div>
+
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([0, 0], 13);
+
+        // Add a tile layer from OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Initialize a marker for the user's location
+        var marker = L.marker([0, 0]).addTo(map);
+
+        var ws = new WebSocket("ws://" + window.location.host + "/ws");
+
+        ws.onopen = function(event) {
+            console.log("WebSocket connection established.");
+        };
+
+        ws.onmessage = function(event) {
+            console.log("Received message:", event.data);
+            // Parse and process location data received from server
+            var location = JSON.parse(event.data);
+            updateLocation(location);
+        };
+
+        ws.onclose = function(event) {
+            console.log("WebSocket connection closed.");
+        };
+
+        function updateLocation(location) {
+            // Update marker position with the latest location data
+            marker.setLatLng([location.latitude, location.longitude]).update();
+        }
+    </script>
+
+    <!-- Leaflet.js -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js" integrity="sha384-KyZXEAg3QhqLMpG8r+Z/+CUSsFZOnLymxqM0i6A3gVmG4oqI2ansPPFjkFV5DI1b" crossorigin=""></script>
+</body>
+</html>
+
+
+
+
+// client
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Location Streaming Client</title>
+</head>
+<body>
+    <h1>Real-Time Location Streaming Client</h1>
+    <button id="startBtn">Start Streaming</button>
+    <button id="stopBtn">Stop Streaming</button>
+
+    <script>
+        var ws;
+
+        // Event listener for the "Start Streaming" button
+        document.getElementById("startBtn").addEventListener("click", function() {
+            // Check if WebSocket is supported by the browser
+            if (!window.WebSocket) {
+                alert("WebSocket is not supported by your browser.");
+                return;
+            }
+
+            // Connect to the WebSocket server
+            ws = new WebSocket("ws://localhost:8080/ws");
+
+            // Event handler for WebSocket connection established
+            ws.onopen = function() {
+                console.log("WebSocket connection established.");
+                
+                // Start sending location updates when WebSocket connection is established
+                startLocationStreaming();
+            };
+
+            // Event handler for WebSocket connection closed
+            ws.onclose = function() {
+                console.log("WebSocket connection closed.");
+            };
+
+            // Event handler for errors
+            ws.onerror = function(error) {
+                console.log("WebSocket error:", error);
+            };
+        });
+
+        // Event listener for the "Stop Streaming" button
+        document.getElementById("stopBtn").addEventListener("click", function() {
+            // Close the WebSocket connection
+            if (ws) {
+                ws.close();
+                console.log("WebSocket connection closed.");
+            }
+        });
+
+        // Function to start streaming location updates
+        function startLocationStreaming() {
+            // Check if geolocation is supported by the browser
+            if ("geolocation" in navigator) {
+                console.log("Geolocation is supported.");
+
+                // Get user's current position
+                navigator.geolocation.watchPosition(function(position) {
+                    // Extract latitude and longitude from position object
+                    var latitude = position.coords.latitude;
+                    var longitude = position.coords.longitude;
+
+                    // Create a JSON object with location data
+                    var locationData = {
+                        latitude: latitude,
+                        longitude: longitude
+                    };
+
+                    // Send location data to the server
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify(locationData));
+                        console.log("Location data sent:", locationData);
+                    }
+                }, function(error) {
+                    console.log("Error getting location:", error);
+                });
+            } else {
+                console.log("Geolocation is not supported by your browser.");
+            }
+        }
+    </script>
+</body>
+</html>

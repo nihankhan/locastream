@@ -26,8 +26,8 @@ func NewServer(router fasthttp.RequestHandler) *Server {
 func (s *Server) Start(addr string) {
 	fmt.Println("Real-Time Location Streamng server running at: ", addr)
 
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt)
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
 
 	go func() {
 		if err := s.fastHttpServer.ListenAndServe(addr); err != nil {
@@ -35,7 +35,7 @@ func (s *Server) Start(addr string) {
 		}
 	}()
 
-	<-done
+	<-stop
 
 	fmt.Println("Shuting down server...")
 
@@ -53,3 +53,5 @@ func main() {
 
 	server.Start(":8080")
 }
+
+///   24.242366448279004, 90.8678031733911
