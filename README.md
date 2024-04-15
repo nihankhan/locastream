@@ -22,20 +22,20 @@ This project implements a real-time location streaming server using Go (Golang) 
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/yourusername/real-time-location-streaming.git
+    git clone https://github.com/nihankhan/locastream.git
     ```
 
 2. Navigate to the project directory:
 
     ```bash
-    cd real-time-location-streaming
+    cd locastream
     ```
 
 3. Build and run the server:
 
     ```bash
     go build
-    ./real-time-location-streaming
+    ./locastream
     ```
 
 4. Access the server in your web browser at `http://localhost:8080/home`.
