@@ -1,4 +1,3 @@
-Certainly! Below is a README.md template for your real-time location streaming project:
 
 ---
 
