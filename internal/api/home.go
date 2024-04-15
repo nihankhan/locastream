@@ -9,76 +9,48 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-//<!-- HomeTemplate is the HTML template for the home page -->
-
 var HomeTemplate = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Location Streaming</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" integrity="sha384-SO/mf3RVeZ2jnPExIzHnUV73zTfSxEhJEMHDs5gIVBUurvZI6U7E3lItPb2zFZB1" crossorigin="">
-
-    <style>
-        #map { height: 400px; }
-    </style>
-</head>
-<body>
-    <h1>Real-Time Location Streaming</h1>
-    <!-- Map container -->
-    <div id="map"></div>
-
-    <!-- Leaflet.js -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js" integrity="sha384-KyZXEAg3QhqLMpG8r+Z/+CUSsFZOnLymxqM0i6A3gVmG4oqI2ansPPFjkFV5DI1b" crossorigin=""></script>
-
-    <script>
-        // Function to initialize Leaflet map and WebSocket connection
-        function initializeMap() {
-            // Initialize the map
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Real-Time Location Streaming</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+        <style>
+            #map { height: 400px; }
+        </style>
+    </head>
+    <body>
+        <h1>Real-Time Location Streaming</h1>
+        <div id="map"></div>
+        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        <script>
             var map = L.map('map').setView([0, 0], 13);
-
-            // Add a tile layer from OpenStreetMap
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            // Initialize a marker for the user's location
-            var marker = L.marker([0, 0]).addTo(map);
+            var markers = {}; // Object to store markers for each user
 
-            // Establish WebSocket connection
             var ws = new WebSocket("ws://" + window.location.host + "/ws");
-
-            ws.onopen = function(event) {
-                console.log("WebSocket connection established.");
-            };
-
             ws.onmessage = function(event) {
-                console.log("Received message:", event.data);
-                // Parse and process location data received from server
                 var location = JSON.parse(event.data);
-                updateLocation(location);
+                var userId = location.userId; // Assuming each location object has a userId property
+
+                // Check if a marker exists for the user, if not, create one
+                if (!markers[userId]) {
+                    markers[userId] = L.marker([location.latitude, location.longitude]).addTo(map);
+                } else {
+                    // If marker exists, update its position
+                    markers[userId].setLatLng([location.latitude, location.longitude]).update();
+                }
             };
+        </script>
+    </body>
+    </html>
 
-            ws.onclose = function(event) {
-                console.log("WebSocket connection closed.");
-            };
-
-            function updateLocation(location) {
-                // Update marker position with the latest location data
-                marker.setLatLng([location.latitude, location.longitude]).update();
-            }
-        }
-
-        // Call the initializeMap function when the document is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeMap();
-        });
-    </script>
-</body>
-</html>
-`
+	`
 
 func Home(ctx *fasthttp.RequestCtx) {
 	fmt.Println("Hello World!")
@@ -91,9 +63,6 @@ func Home(ctx *fasthttp.RequestCtx) {
 
 	// Set the content type to text/html
 	ctx.SetContentType("text/html")
-
-	// Write the HTML template to the response body
-	// fmt.Fprintf(ctx, HomeTemplate)
 
 	// Serve the HTML template for the home page
 	tmpl, err := template.New("home").Parse(HomeTemplate)
