@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -8,6 +9,12 @@ import (
 	"github.com/fasthttp/websocket"
 	"github.com/valyala/fasthttp"
 )
+
+// Location represents the location data
+type Location struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
 
 // Define a mutex to safely access the connections slice from multiple goroutines
 var connectionsMutex sync.Mutex
@@ -29,6 +36,10 @@ func WebSocket(ctx *fasthttp.RequestCtx) {
 	err := upgrader.Upgrade(ctx, func(conn *websocket.Conn) {
 		defer conn.Close()
 
+		// Add the new WebSocket connection
+		AddConnection(conn)
+		defer RemoveConnection(conn)
+
 		for {
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
@@ -36,13 +47,16 @@ func WebSocket(ctx *fasthttp.RequestCtx) {
 				break
 			}
 
-			fmt.Println("Received Message: ", string(msg))
-
-			err = conn.WriteMessage(websocket.TextMessage, msg)
+			// Parse the incoming message as location data
+			var location Location
+			err = json.Unmarshal(msg, &location)
 			if err != nil {
-				log.Println("WebSocket write error:", err)
-				break
+				log.Println("Error parsing location data:", err)
+				continue
 			}
+
+			// Broadcast the location data to all connected clients
+			BroadcastMessage(msg)
 		}
 	})
 	if err != nil {
