@@ -9,46 +9,54 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var HomeTemplate = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Real-Time Location Streaming</title>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-        <style>
-            #map { height: 400px; }
-        </style>
-    </head>
-    <body>
-        <h1>Real-Time Location Streaming</h1>
-        <div id="map"></div>
-        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-        <script>
-            var map = L.map('map').setView([0, 0], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+var HomeTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Location Streaming</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <style>
+        #map { height: 80vh; }
+        .info { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Real-Time Location Streaming</h1>
+    <div id="map"></div>
+    <div class="info">
+        <p>Duration: <span id="duration"></span></p>
+        <p>Distance: <span id="distance"></span></p>
+    </div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([0, 0], 13);
+        var markers = {}; // Object to store markers for each user
 
-            var markers = {}; // Object to store markers for each user
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
-            var ws = new WebSocket("ws://" + window.location.host + "/ws");
-            ws.onmessage = function(event) {
-                var location = JSON.parse(event.data);
-                var userId = location.userId; // Assuming each location object has a userId property
+        var ws = new WebSocket("ws://" + window.location.host + "/ws");
+        ws.onmessage = function(event) {
+            var location = JSON.parse(event.data);
+            var userId = location.userId; // Assuming each location object has a userId property
 
-                // Check if a marker exists for the user, if not, create one
-                if (!markers[userId]) {
-                    markers[userId] = L.marker([location.latitude, location.longitude]).addTo(map);
-                } else {
-                    // If marker exists, update its position
-                    markers[userId].setLatLng([location.latitude, location.longitude]).update();
-                }
-            };
-        </script>
-    </body>
-    </html>
+            // Check if a marker exists for the user, if not, create one
+            if (!markers[userId]) {
+                markers[userId] = L.marker([location.latitude, location.longitude]).addTo(map);
+            } else {
+                // If marker exists, update its position
+                markers[userId].setLatLng([location.latitude, location.longitude]).update();
+            }
+
+            // Update duration and distance
+            document.getElementById('duration').textContent = location.duration + " minutes";
+            document.getElementById('distance').textContent = location.distance + " km";
+        };
+    </script>
+</body>
+</html>
 
 	`
 
